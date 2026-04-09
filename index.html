@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Portal Contec - Gerador de Comunicados Flexível</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+      <style>
+        :root {
+            --contec-blue: #040452;
+            --contec-gold: #d4af37;
+            --bg-light: #f4f7f6;
+        }
+
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+        }
+
+        .main-wrapper {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        /* Painel de Controle - Estilo Sistema */
+        .admin-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            flex: 1; /* Faz ele ocupar a lateral esquerda */
+            position: sticky;
+            top: 20px;
+        }
+
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: var(--contec-blue); font-size: 14px; }
+        
+        input[type="text"], textarea {
+            width: 100%; padding: 10px; border: 1px solid #ccc;
+            border-radius: 6px; box-sizing: border-box; font-family: inherit;
+        }
+
+        button {
+            background: #040452;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        /* Área de Preview (Estilo Imagem WhatsApp) */
+        #render-area {
+            width: 500px;
+            min-height: 650px;
+            background: white;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 10px; /* Espaço para o rodapé */
+        }
+
+        .dots-decoration {
+            position: absolute; right: 15px; top: 15px;
+            display: grid; grid-template-columns: repeat(4, 5px); gap: 5px;
+        }
+        .dot { width: 5px; height: 5px; background: var(--contec-gold); border-radius: 50%; opacity: 0.5; }
+
+        .header { text-align: center; padding: 10px 20px 10px; }
+        .logo-contec { width: 280px; }
+
+        /* Título - Campo Editável e Estilizado */
+        .title-container { text-align: center; margin: 15px 0 25px; }
+        .title-text {
+            color: var(--contec-blue);
+            position: relative;
+            top: -30px;  /* Sobe 10 pixels */    
+            font-size: 32px;
+            font-weight: 900;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            outline: none; /* Remove borda ao clicar */
+        }
+
+        .main-content {
+            padding: 0 45px;
+            margin-top: -15px;
+            flex-grow: 1;
+            color: #333;
+            line-height: 1.5;
+            font-size: 17px;
+            white-space: pre-wrap; /* CORREÇÃO: Garante as quebras de linha */
+            word-wrap: break-word;
+        }
+
+        /* Data Localizada acima do rodapé */
+        .date-display {
+            text-align: right;
+            padding: 0 45px;
+            font-size: 14px;
+            color: #000000;
+            margin-top: 20px;
+            margin-bottom: 5px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* Rodapé com faixa azul e texto branco */
+        .footer-strip {
+            height: 3px;
+            background: var(--contec-blue);
+            width: 100%;
+            margin-top: auto;
+        }
+        .footer-content {
+            background: var(--contec-blue);
+            padding: 5px 20px;
+            text-align: center;
+            font-size: 14px;
+            color: white;
+            line-height: 1.5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .btn-voltar {
+            display: inline-block;
+            text-decoration: none;
+            color: #e4e1df;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            transition: 0.3s;
+        }
+
+        .btn-voltar:hover {
+            color: var(--contec-blue);
+            text-decoration: underline;
+        }
+
+    </style>
+</head>
+<body>
+   
+    <div class="main-wrapper"> 
+        <div class="admin-panel">
+            <a href="https://monicathayanne.github.io/portal-contec/" class="btn-voltar">← Voltar para o Portal</a>
+            
+        <h3 style="margin-top:0; color: var(--contec-blue); text-align: center;">Gerador de Comunicado Contec</h3>
+        
+        <div class="form-group">
+            <label>Título do Comunicado:</label>
+            <input type="text" id="tituloInput" value="COMUNICADO" oninput="atualizarPreview()">
+        </div>
+
+        <div class="form-group">
+            <label>Conteúdo da Mensagem:</label>
+            <textarea id="textoInput" rows="10" oninput="atualizarPreview()" placeholder="Digite a mensagem completa..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Data:</label>
+            <input type="text" id="dataInput" oninput="atualizarPreview()">
+        </div>
+
+        <button onclick="baixarImagem()">BAIXAR IMAGEM</button>
+    </div>
+
+    <div id="render-area">
+        <div class="dots-decoration">
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+        
+        <div class="header">
+            <img src="logo.png" class="logo-contec" alt="CONTEC">
+        </div>
+
+        <div class="title-container">
+            <div id="viewTitulo" class="title-text"></div>
+        </div>
+
+        <div class="main-content" id="viewConteudo"></div>
+
+        <div class="date-display" id="viewData"></div>
+
+        <div class="footer-strip"></div>
+        <div class="footer-content">
+            <strong>CONTEC - Contabilidade e Assessoria.</strong><br>
+            Informações: (85) 9 9198-5507<br>
+            Travessa Marçal Aguiar nº 543, Centro – Baturité, Ceará<br>
+
+        </div>
+    </div>
+
+    <script>
+        
+        // Função para atualizar o preview enquanto digita
+        function atualizarPreview() {
+            const titulo = document.getElementById('tituloInput').value;
+            const texto = document.getElementById('textoInput').value;
+            const data = document.getElementById('dataInput').value;
+            
+            // Atualiza os elementos na área de renderização
+            document.getElementById('viewTitulo').innerText = titulo;
+            // CORREÇÃO: .innerText preserva as quebras de linha
+            document.getElementById('viewConteudo').innerText = texto;
+            document.getElementById('viewData').innerText = data;
+        }
+
+        // Função para baixar a área do preview como imagem (PNG)
+        function baixarImagem() {
+            const area = document.getElementById('render-area');
+            // scale: 3 para garantir nitidez no WhatsApp
+            html2canvas(area, { scale: 3 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `CONTEC_${document.getElementById('tituloInput').value}_${new Date().getTime()}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        }
+
+        // Inicializa o sistema com dados padrão
+        window.onload = () => {
+            // Gera a data de hoje para o campo de data
+            const hoje = new Date();
+            const dataFormatada = `Baturité-CE, ${hoje.getDate()} de ${new Intl.DateTimeFormat('pt-BR', {month: 'long'}).format(hoje)} de ${hoje.getFullYear()}`;
+            
+            document.getElementById('dataInput').value = dataFormatada;
+            document.getElementById('textoInput').value = "";
+            atualizarPreview();
+        };
+    </script>
+</body>
+</html>
