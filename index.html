@@ -1,244 +1,640 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Portal Contec - Gerador de Comunicados</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Unificado Comunicado e Relatório - CONTEC</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-      <style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
         :root {
-            --contec-blue: #040452;
+            --azul-escuro: #030a4d;
+            --azul-claro: #1a5ca6;
             --contec-gold: #d4af37;
-            --bg-light: #f4f7f6;
+            --cinza-fundo: #f3f4f6;
+            --borda: #cbd5e1;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body { 
+            background-color: var(--cinza-fundo); 
+            color: #1f2937; 
+            display: flex; 
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
         }
 
-        body {
-            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-            background-color: var(--bg-light);
+        .app-container { display: flex; width: 100%; height: 100%; }
+
+        /* Painel de Inputs (Esquerda) */
+        .painel-formulario {
+            width: 50%;
+            padding: 25px;
+            overflow-y: auto;
+            background: white;
+            border-right: 2px solid var(--borda);
             display: flex;
             flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Área de Preview Unificada (Direita) */
+        .painel-preview { 
+            width: 50%; 
+            height: 100%; 
+            background: #525659; 
+            display: flex; 
+            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            padding: 15px;
-        }
-
-        .main-wrapper {
-            display: flex;
-            gap: 30px;
-            align-items: flex-start;
-            max-width: 1200px;
-            width: 100%;
-        }
-
-        /* Painel de Controle - Estilo Sistema */
-        .admin-panel {
-            background: white;
+            overflow: auto;
             padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            flex: 1; /* Faz ele ocupar a lateral esquerda */
-            position: sticky;
-            top: 20px;
         }
-
-        .form-group { margin-bottom: 12px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; color: var(--contec-blue); font-size: 14px; }
         
-        input[type="text"], textarea {
-            width: 100%; padding: 10px; border: 1px solid #ccc;
-            border-radius: 6px; box-sizing: border-box; font-family: inherit;
-        }
+        /* Iframe do PDF */
+        .painel-preview iframe { width: 100%; height: 100%; border: none; display: none; }
 
-        button {
-            background: #040452;
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            width: 100%;
-            font-size: 16px;
-            font-weight: bold;
-            margin-top: 10px;
-        }
-
-        /* Área de Preview (Estilo Imagem WhatsApp) */
+        /* CARD DE RENDERIZAÇÃO DA IMAGEM DO WHATSAPP */
         #render-area {
             width: 500px;
             min-height: 650px;
             background: white;
             position: relative;
-            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
             display: flex;
             flex-direction: column;
-            padding-bottom: 10px; /* Espaço para o rodapé */
+            padding-bottom: 15px;
         }
-
         .dots-decoration {
             position: absolute; right: 15px; top: 15px;
             display: grid; grid-template-columns: repeat(4, 5px); gap: 5px;
         }
         .dot { width: 5px; height: 5px; background: var(--contec-gold); border-radius: 50%; opacity: 0.5; }
-
-        .header { text-align: center; padding: 10px 20px 10px; }
-        .logo-contec { width: 280px; }
-
-        /* Título - Campo Editável e Estilizado */
-        .title-container { text-align: center; margin: 15px 0 25px; }
-        .title-text {
-            color: var(--contec-blue);
-            position: relative;
-            top: -30px;  /* Sobe 10 pixels */    
-            font-size: 32px;
+        .header-img { text-align: center; padding: 25px 20px 10px; }
+        .logo-contec-img { width: 280px; }
+        .title-container-img { text-align: center; margin: 5px 0 15px; }
+        .title-text-img {
+            color: var(--azul-escuro);
+            font-size: 28px;
             font-weight: 900;
             letter-spacing: 4px;
             text-transform: uppercase;
-            outline: none; /* Remove borda ao clicar */
         }
-
-        .main-content {
+        .main-content-img {
             padding: 0 45px;
-            margin-top: -15px;
             flex-grow: 1;
-            color: #333;
-            line-height: 1.5;
-            font-size: 17px;
-            white-space: pre-wrap; /* CORREÇÃO: Garante as quebras de linha */
+            color: #1f2937;
+            line-height: 1.6;
+            font-size: 16px;
+            white-space: pre-wrap;
             word-wrap: break-word;
         }
-
-        /* Data Localizada acima do rodapé */
-        .date-display {
+        .date-display-img {
             text-align: right;
             padding: 0 45px;
-            font-size: 14px;
-            color: #000000;
-            margin-top: 20px;
-            margin-bottom: 5px;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        /* Rodapé com faixa azul e texto branco */
-        .footer-strip {
-            height: 3px;
-            background: var(--contec-blue);
-            width: 100%;
-            margin-top: auto;
-        }
-        .footer-content {
-            background: var(--contec-blue);
-            padding: 5px 20px;
-            text-align: center;
-            font-size: 14px;
-            color: white;
-            line-height: 1.5;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        .btn-voltar {
-            display: inline-block;
-            text-decoration: none;
-            color: #e4e1df;
             font-size: 13px;
-            font-weight: bold;
+            color: #4b5563;
+            margin-top: 20px;
             margin-bottom: 10px;
-            transition: 0.3s;
+        }
+        .footer-strip-img { height: 3px; background: var(--azul-escuro); width: 100%; margin-top: auto; }
+        .footer-content-img {
+            background: var(--azul-escuro); padding: 12px 20px; text-align: center;
+            font-size: 12px; color: white; line-height: 1.5;
         }
 
-        .btn-voltar:hover {
-            color: var(--contec-blue);
-            text-decoration: underline;
+        h1 { color: var(--azul-escuro); font-size: 20px; border-bottom: 2px solid var(--azul-escuro); padding-bottom: 8px; margin-bottom: 5px; }
+        
+        /* ABAS COORPORATIVAS (TABS) */
+        .seletor-modo-container { display: flex; gap: 10px; margin-bottom: 5px; }
+        .btn-modo {
+            flex: 1; padding: 12px; border: 2px solid var(--borda); background: #f8fafc;
+            color: #4b5563; font-weight: bold; font-size: 14px; border-radius: 8px; cursor: pointer; transition: all 0.2s ease;
         }
+        .btn-modo.ativo { border-color: var(--azul-escuro); background: var(--azul-escuro); color: white; }
 
+        .grid-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .campo-grupo { display: flex; flex-direction: column; gap: 5px; }
+        .campo-grupo.full-width { grid-column: span 2; }
+        label { font-weight: 600; font-size: 13px; color: #4b5563; }
+        
+        input { padding: 8px 12px; border: 1px solid var(--borda); border-radius: 6px; font-size: 13px; outline: none; }
+        input:focus { border-color: var(--azul-claro); }
+
+        /* Ferramentas Rich Text */
+        .toolbar-editor {
+            display: flex; gap: 6px; background: #f8fafc; border: 1px solid var(--borda);
+            border-bottom: none; padding: 6px; border-top-left-radius: 6px; border-top-right-radius: 6px; align-items: center;
+        }
+        .btn-editor { padding: 4px 8px; background: white; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; }
+        .editor-rich-text {
+            border: 1px solid var(--borda); border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;
+            padding: 12px; min-height: 100px; max-height: 180px; overflow-y: auto; font-size: 13px; outline: none; line-height: 1.5; background: white;
+        }
+        
+        /* Planilha */
+        .secao-tabela { margin-top: 5px; }
+        .topo-tabela { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .topo-tabela h3 { font-size: 14px; color: var(--azul-escuro); }
+        .controles-tabela { display: flex; gap: 6px; align-items: center; }
+        .btn-acao { padding: 4px 10px; border: 1px solid var(--azul-claro); background: white; color: var(--azul-claro); border-radius: 4px; font-weight: 600; font-size: 11px; cursor: pointer; transition: all 0.2s; }
+        .btn-acao:hover { background: var(--azul-claro); color: white; }
+        .grade-planilha { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
+        .grade-planilha th { background-color: #f8fafc; padding: 5px; border: 1px solid var(--borda); }
+        .grade-planilha th input { font-weight: bold; color: var(--azul-escuro); text-align: left; background: transparent; }
+        .grade-planilha td { border: 1px solid var(--borda); padding: 2px; }
+        .grade-planilha input { width: 100%; border: none; padding: 6px; font-size: 12px; outline: none; }
+        
+        /* Caixa de exibição verde restaurada */
+        .controle-exibicao {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f0fdf4;
+            padding: 10px;
+            border: 1px solid #bbf7d0;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #166534;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+        .controle-exibicao input { cursor: pointer; width: 16px; height: 16px; }
+
+        /* Classes Ocultação */
+        .modo-comunicado-restrito { display: none !important; }
+        .btn-voltar { text-decoration: none; color: #4b5563; font-size: 13px; font-weight: bold; margin-bottom: 5px; display: inline-block; }
+        .btn-voltar:hover { color: var(--azul-escuro); text-decoration: underline; }
+
+        .btn-gerar { background-color: var(--azul-escuro); color: white; border: none; padding: 14px; width: 100%; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: auto; }
+        .btn-gerar:hover { background-color: var(--azul-claro); }
     </style>
 </head>
 <body>
-   
-    <div class="main-wrapper"> 
-        <div class="admin-panel">
-            <a href="https://monicathayanne.github.io/portal-contec/" class="btn-voltar">← Voltar para o Portal</a>
+
+    <div class="app-container">
+        
+        <div class="painel-formulario">
+            <div>
+                <a href="https://monicathayanne.github.io/portal-contec/" class="btn-voltar">← Voltar para o Portal</a>
+                <h1>Gerador Unificado de Comunicados e Relatórios</h1>
+            </div>
             
-        <h3 style="margin-top:0; color: var(--contec-blue); text-align: center;">Gerador de Comunicado Contec</h3>
-        
-        <div class="form-group">
-            <label>Título do Comunicado:</label>
-            <input type="text" id="tituloInput" value="COMUNICADO" oninput="atualizarPreview()">
+            <div class="seletor-modo-container">
+                <button type="button" id="btnModoComunicado" class="btn-modo ativo" onclick="mudarModoOperacao('comunicado')">Modo Comunicado</button>
+                <button type="button" id="btnModoRelatorio" class="btn-modo" onclick="mudarModoOperacao('relatorio')">Modo Relatório</button>
+            </div>
+            
+            <div class="grid-campos">
+                <div class="campo-grupo">
+                    <label for="empresa" id="lblEmpresa">Título do Comunicado</label>
+                    <input type="text" id="empresa" value="" placeholder="Ex: COMUNICADO" oninput="atualizarPreviewGlobal()">
+                </div>
+                <div class="campo-grupo">
+                    <label for="data">Data do Documento</label>
+                    <input type="text" id="data" value="" oninput="atualizarPreviewGlobal()">
+                </div>
+                <div class="campo-grupo full-width" id="containerAssunto">
+                    <label for="assunto">Assunto do Documento</label>
+                    <input type="text" id="assunto" value="" placeholder="Digite o assunto ou subtítulo..." oninput="atualizarPreviewGlobal()">
+                </div>
+                
+                <div class="campo-grupo full-width">
+                    <label id="lblMensagem">Conteúdo do Comunicado</label>
+                    <div class="toolbar-editor modo-comunicado-restrito" id="barraFormatacao">
+                        <button class="btn-editor" type="button" onclick="executarComando('bold', 'mensagemEditor')">B</button>
+                        <button class="btn-editor" type="button" onclick="executarComando('italic', 'mensagemEditor')"><i>I</i></button>
+                        <span style="font-size: 12px; color: #666; margin-left: 5px;">Cor:</span>
+                        <input class="seletor-cor" type="color" value="#1f2937" onchange="executarComando('foreColor', 'mensagemEditor', this.value)">
+                    </div>
+                    <div class="editor-rich-text" contenteditable="true" id="mensagemEditor" oninput="atualizarPreviewGlobal()"></div>
+                </div>
+            </div>
+
+            <label class="controle-exibicao modo-comunicado-restrito" id="containerCheckTabela">
+                <input type="checkbox" id="chkExibirTabela" checked onclick="alternarVisibilidadeTabela()">
+                Exibir Tabela de Dados no Documento
+            </label>
+
+            <div class="secao-tabela modo-comunicado-restrito" id="areaTabelaDinamica">
+                <div class="topo-tabela">
+                    <h3>Estrutura da Tabela</h3>
+                    <div class="controles-tabela">
+                        <button class="btn-acao" onclick="adicionarLinha()">+ Linha</button>
+                        <button class="btn-acao" onclick="removerLinha()">- Linha</button>
+                        <button class="btn-acao" onclick="adicionarColuna()">+ Coluna</button>
+                        <button class="btn-acao" onclick="removerColuna()">- Coluna</button>
+                        <button class="btn-acao" onclick="limparTabelaCompleta()" style="border-color: #6b7280; color: #6b7280;">Limpar Dados</button>
+                        <button class="btn-acao" onclick="calcularAutosoma()" style="border-color: #10b981; color: #10b981;">∑ AutoSoma</button>
+                    </div>
+                </div>
+                
+                <table class="grade-planilha" id="tabelaDinamica">
+                    <thead>
+                        <tr>
+                            <th><input type="text" value="Competência" oninput="atualizarPreviewGlobal()"></th>
+                            <th style="width: 140px;"><input type="text" value="Valor Entrada (R$)" oninput="atualizarPreviewGlobal()"></th>
+                            <th style="width: 130px;"><input type="text" value="Valor Saída (R$)" oninput="atualizarPreviewGlobal()"></th>
+                            <th style="width: 90px;"><input type="text" value="Alíquota" oninput="atualizarPreviewGlobal()"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><input type="text" value="" oninput="atualizarPreviewGlobal()"></td>
+                            <td><input type="text" value="" oninput="atualizarPreviewGlobal()"></td>
+                            <td><input type="text" value="" oninput="atualizarPreviewGlobal()"></td>
+                            <td><input type="text" value="" oninput="atualizarPreviewGlobal()"></td>
+                        </tr>
+                        <tr>
+                            <td><input type="text" value="" oninput="atualizarPreviewGlobal()"></td>
+                            <td><input type="text" value="" oninput="atualizarPreviewGlobal()"></td>
+                            <td><input type="text" value="" oninput="atualizarPreviewGlobal()"></td>
+                            <td><input type="text" value="" oninput="atualizarPreviewGlobal()"></td>
+                        </tr>
+                        <tr>
+                            <td><input type="text" value="TOTAL:" oninput="atualizarPreviewGlobal()"></td>
+                            <td><input type="text" value="" placeholder="Clique AutoSoma" oninput="atualizarPreviewGlobal()"></td>
+                            <td><input type="text" value="" placeholder="Clique AutoSoma" oninput="atualizarPreviewGlobal()"></td>
+                            <td><input type="text" value="-" oninput="atualizarPreviewGlobal()"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="campo-grupo full-width modo-comunicado-restrito" id="areaObservacaoInferior" style="margin-top: 5px;">
+                <label>Observações Finais (Abaixo da Tabela)</label>
+                <div class="toolbar-editor">
+                    <button class="btn-editor" type="button" onclick="executarComando('bold', 'observacaoEditor')">B</button>
+                    <button class="btn-editor" type="button" onclick="executarComando('italic', 'observacaoEditor')"><i>I</i></button>
+                    <span style="font-size: 12px; color: #666; margin-left: 5px;">Cor:</span>
+                    <input class="seletor-cor" type="color" value="#dc2626" onchange="executarComando('foreColor', 'observacaoEditor', this.value)">
+                </div>
+                <div class="editor-rich-text" contenteditable="true" id="observacaoEditor" oninput="atualizarPreviewGlobal()"></div>
+            </div>
+
+            <button class="btn-gerar" id="btnDisparoPrincipal" onclick="dispararBotaoAcao()">GERAR IMAGEM PARA WHATSAPP</button>
         </div>
 
-        <div class="form-group">
-            <label>Conteúdo da Mensagem:</label>
-            <textarea id="textoInput" rows="10" oninput="atualizarPreview()" placeholder="Digite a mensagem completa..."></textarea>
+        <div class="painel-preview">
+            <iframe id="pdfPreview"></iframe>
+
+            <div id="render-area">
+                <div class="dots-decoration">
+                    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                </div>
+                <div class="header-img">
+                    <img src="logo_contec.png" class="logo-contec-img" alt="CONTEC">
+                </div>
+                <div class="title-container-img">
+                    <div id="viewTituloImg" class="title-text-img">COMUNICADO</div>
+                </div>
+                <div class="main-content-img" id="viewConteudoImg"></div>
+                <div class="date-display-img" id="viewDataImg"></div>
+                <div class="footer-strip-img"></div>
+                <div class="footer-content-img">
+                    <strong>CONTEC - Contabilidade e Assessoria.</strong><br>
+                    Informações: (85) 9 9198-5507<br>
+                    Travessa Marçal Aguiar nº 543, Centro – Baturité, Ceará
+                </div>
+            </div>
         </div>
 
-        <div class="form-group">
-            <label>Data:</label>
-            <input type="text" id="dataInput" oninput="atualizarPreview()">
-        </div>
-
-        <button onclick="baixarImagem()">BAIXAR IMAGEM</button>
-    </div>
-
-    <div id="render-area">
-        <div class="dots-decoration">
-            <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
-            <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
-        </div>
-        
-        <div class="header">
-            <img src="logo.png" class="logo-contec" alt="CONTEC">
-        </div>
-
-        <div class="title-container">
-            <div id="viewTitulo" class="title-text"></div>
-        </div>
-
-        <div class="main-content" id="viewConteudo"></div>
-
-        <div class="date-display" id="viewData"></div>
-
-        <div class="footer-strip"></div>
-        <div class="footer-content">
-            <strong>CONTEC - Contabilidade e Assessoria.</strong><br>
-            Informações: (85) 9 9198-5507<br>
-            Travessa Marçal Aguiar nº 543, Centro – Baturité, Ceará<br>
-
-        </div>
     </div>
 
     <script>
+        let modoAtual = 'comunicado';
+        let idEditorAtivo = 'mensagemEditor';
         
-        // Função para atualizar o preview enquanto digita
-        function atualizarPreview() {
-            const titulo = document.getElementById('tituloInput').value;
-            const texto = document.getElementById('textoInput').value;
-            const data = document.getElementById('dataInput').value;
+        document.getElementById('mensagemEditor').addEventListener('focus', () => idEditorAtivo = 'mensagemEditor');
+        document.getElementById('observacaoEditor').addEventListener('focus', () => idEditorAtivo = 'observacaoEditor');
+
+        function mudarModoOperacao(modo) {
+            modoAtual = modo;
             
-            // Atualiza os elementos na área de renderização
-            document.getElementById('viewTitulo').innerText = titulo;
-            // CORREÇÃO: .innerText preserva as quebras de linha
-            document.getElementById('viewConteudo').innerText = texto;
-            document.getElementById('viewData').innerText = data;
+            const btnCom = document.getElementById('btnModoComunicado');
+            const btnRel = document.getElementById('btnModoRelatorio');
+            const areaTab = document.getElementById('areaTabelaDinamica');
+            const areaObs = document.getElementById('areaObservacaoInferior');
+            const containerAssunto = document.getElementById('containerAssunto');
+            const barraFormatacao = document.getElementById('barraFormatacao');
+            const iframePDF = document.getElementById('pdfPreview');
+            const cardImg = document.getElementById('render-area');
+            const btnDisparo = document.getElementById('btnDisparoPrincipal');
+            const checkTabela = document.getElementById('containerCheckTabela');
+            
+            if(modo === 'comunicado') {
+                btnCom.classList.add('ativo');
+                btnRel.classList.remove('ativo');
+                areaTab.classList.add('modo-comunicado-restrito');
+                areaObs.classList.add('modo-comunicado-restrito');
+                containerAssunto.classList.add('modo-comunicado-restrito');
+                barraFormatacao.classList.add('modo-comunicado-restrito');
+                checkTabela.classList.add('modo-comunicado-restrito');
+                iframePDF.style.display = "none";
+                cardImg.style.display = "flex";
+                
+                document.getElementById('lblEmpresa').innerText = "Título do Comunicado";
+                document.getElementById('lblMensagem').innerText = "Conteúdo do Comunicado";
+                btnDisparo.innerText = "GERAR IMAGEM PARA WHATSAPP";
+            } else {
+                btnCom.classList.remove('ativo');
+                btnRel.classList.add('ativo');
+                containerAssunto.classList.remove('modo-comunicado-restrito');
+                barraFormatacao.classList.remove('modo-comunicado-restrito');
+                checkTabela.classList.remove('modo-comunicado-restrito');
+                areaObs.classList.remove('modo-comunicado-restrito');
+                iframePDF.style.display = "block";
+                cardImg.style.display = "none";
+                
+                document.getElementById('lblEmpresa').innerText = "Nome da Empresa / Cliente";
+                document.getElementById('lblMensagem').innerText = "Texto do Comunicado (Acima da Tabela)";
+                btnDisparo.innerText = "BAIXAR ARQUIVO PDF";
+                
+                alternarVisibilidadeTabela();
+            }
+            atualizarPreviewGlobal();
         }
 
-        // Função para baixar a área do preview como imagem (PNG)
-        function baixarImagem() {
+        function alternarVisibilidadeTabela() {
+            const areaTab = document.getElementById('areaTabelaDinamica');
+            const chkExibirTabela = document.getElementById("chkExibirTabela");
+            
+            if (modoAtual === 'relatorio') {
+                if (chkExibirTabela.checked) {
+                    areaTab.classList.remove("modo-comunicado-restrito");
+                } else {
+                    areaTab.classList.add("modo-comunicado-restrito");
+                }
+            }
+            atualizarPreviewGlobal();
+        }
+
+        function executarComando(comando, idEditor = null, valor = null) {
+            if(idEditor) idEditorAtivo = idEditor;
+            document.getElementById(idEditorAtivo).focus();
+            document.execCommand(comando, false, valor);
+            atualizarPreviewGlobal();
+        }
+
+        function atualizarPreviewGlobal() {
+            if (modoAtual === 'comunicado') {
+                const titulo = document.getElementById('empresa').value || "COMUNICADO";
+                const texto = document.getElementById('mensagemEditor').innerText;
+                const data = document.getElementById('data').value;
+                
+                document.getElementById('viewTituloImg').innerText = titulo.toUpperCase();
+                document.getElementById('viewConteudoImg').innerText = texto;
+                document.getElementById('viewDataImg').innerText = data;
+            } else {
+                construirDocumentoPDF(false);
+            }
+        }
+
+        function dispararBotaoAcao() {
+            if (modoAtual === 'comunicado') {
+                baixarImagemWhatsApp();
+            } else {
+                construirDocumentoPDF(true);
+            }
+        }
+
+        function baixarImagemWhatsApp() {
             const area = document.getElementById('render-area');
-            // scale: 3 para garantir nitidez no WhatsApp
-            html2canvas(area, { scale: 3 }).then(canvas => {
+            const tituloDoc = document.getElementById('empresa').value || "COMUNICADO";
+            html2canvas(area, { scale: 3, useCORS: true }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = `CONTEC_${document.getElementById('tituloInput').value}_${new Date().getTime()}.png`;
+                link.download = `CONTEC_${tituloDoc.toUpperCase().replace(/\s+/g, '_')}_${new Date().getTime()}.png`;
                 link.href = canvas.toDataURL();
                 link.click();
             });
         }
 
-        // Inicializa o sistema com dados padrão
+        function limparTabelaCompleta() {
+            if(confirm("Deseja limpar todos os valores de células da tabela?")) {
+                const inputsCorpo = document.querySelectorAll("#tabelaDinamica tbody input");
+                inputsCorpo.forEach(input => { if(input.value !== "-") input.value = ""; });
+                atualizarPreviewGlobal();
+            }
+        }
+
+        // --- PLANILHA CONTROLES ---
+        function adicionarLinha() {
+            const tbody = document.querySelector("#tabelaDinamica tbody");
+            const numColunas = document.querySelectorAll("#tabelaDinamica thead th").length;
+            const tr = document.createElement("tr");
+            for (let i = 0; i < numColunas; i++) {
+                const td = document.createElement("td");
+                td.innerHTML = '<input type="text" value="" oninput="atualizarPreviewGlobal()">';
+                tr.appendChild(td);
+            }
+            tbody.insertBefore(tr, tbody.rows[tbody.rows.length - 1]);
+            atualizarPreviewGlobal();
+        }
+
+        function removerLinha() {
+            const linhas = document.querySelectorAll("#tabelaDinamica tbody tr");
+            if (linhas.length > 2) { linhas[linhas.length - 2].remove(); atualizarPreviewGlobal(); }
+        }
+
+        function adicionarColuna() {
+            const theadTr = document.querySelector("#tabelaDinamica thead tr");
+            const th = document.createElement("th");
+            th.innerHTML = '<input type="text" value="Nova Coluna" oninput="atualizarPreviewGlobal()">';
+            theadTr.appendChild(th);
+            const linhas = document.querySelectorAll("#tabelaDinamica tbody tr");
+            linhas.forEach(tr => {
+                const td = document.createElement("td");
+                td.innerHTML = '<input type="text" value="" oninput="atualizarPreviewGlobal()">';
+                tr.appendChild(td);
+            });
+            atualizarPreviewGlobal();
+        }
+
+        function removerColuna() {
+            const ths = document.querySelectorAll("#tabelaDinamica thead th");
+            if (ths.length > 1) {
+                ths[ths.length - 1].remove();
+                const linhas = document.querySelectorAll("#tabelaDinamica tbody tr");
+                linhas.forEach(tr => { tr.cells[tr.cells.length - 1].remove(); });
+                atualizarPreviewGlobal();
+            }
+        }
+
+        function limparNumero(texto) {
+            if (!texto) return 0;
+            let limpo = texto.replace("R$", "").replace(/\s/g, "");
+            if (limpo.includes(".") && limpo.includes(",")) { limpo = limpo.replace(/\./g, "").replace(",", "."); }
+            else if (limpo.includes(",")) { limpo = limpo.replace(",", "."); }
+            return parseFloat(limpo) || 0;
+        }
+
+        function formatarMoeda(valor) {
+            return "R$ " + valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function calcularAutosoma() {
+            const lines = document.querySelectorAll("#tabelaDinamica tbody tr");
+            const numColunas = document.querySelectorAll("#tabelaDinamica thead th").length;
+            let indexLinhaTotal = -1;
+            lines.forEach((tr, index) => {
+                if (tr.cells[0].querySelector("input").value.toUpperCase().includes("TOTAL")) indexLinhaTotal = index;
+            });
+            if (indexLinhaTotal === -1) { alert("Nomeie a primeira célula de uma linha como 'TOTAL'."); return; }
+
+            for (let col = 1; col < numColunas; col++) {
+                if (col === numColunas - 1) continue; 
+                let soma = 0;
+                for (let lin = 0; lin < indexLinhaTotal; lin++) {
+                    soma += limparNumero(lines[lin].cells[col].querySelector("input").value);
+                }
+                if (soma > 0) { lines[indexLinhaTotal].cells[col].querySelector("input").value = formatarMoeda(soma); }
+            }
+            atualizarPreviewGlobal();
+        }
+
+        // --- MOTOR PDF ---
+        function carregarLogo(url) {
+            return new Promise((resolve) => {
+                const img = new Image(); img.src = url;
+                img.onload = () => resolve(img); img.onerror = () => resolve(null);
+            });
+        }
+
+        let logoObjetoGlobal = null;
+        carregarLogo('logo_contec.png').then(img => { logoObjetoGlobal = img; atualizarPreviewGlobal(); });
+
+        async function construirDocumentoPDF(modoDownload = false) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4', compress: false });
+            
+            const empresa = document.getElementById('empresa').value.toUpperCase();
+            const dataDoc = document.getElementById('data').value;
+            const assunto = document.getElementById('assunto').value;
+            const mensagemHtml = document.getElementById('mensagemEditor').innerHTML;
+            const observacaoHtml = document.getElementById('observacaoEditor').innerHTML;
+            const exibirTabela = document.getElementById("chkExibirTabela").checked;
+
+            function desenharFundoInstitucional(pdf) {
+                if (logoObjetoGlobal) {
+                    const larguraAlvo = 50; const proporcao = logoObjetoGlobal.naturalHeight / logoObjetoGlobal.naturalWidth;
+                    pdf.addImage(logoObjetoGlobal, 'PNG', 18, 5, larguraAlvo, larguraAlvo * proporcao, undefined, 'FAST');
+                }
+                pdf.setDrawColor(3, 10, 77); pdf.setLineWidth(0.4); pdf.line(18, 26, 192, 26);
+                pdf.setDrawColor(203, 213, 225); pdf.setLineWidth(0.2); pdf.line(30, 274, 180, 274);
+                pdf.setTextColor(100, 116, 139); pdf.setFont("helvetica", "bold"); pdf.setFontSize(11);
+                pdf.text("CONTEC - Contabilidade e Assessoria", 105, 280, { align: "center" });
+                pdf.setFont("helvetica", "normal"); pdf.setFontSize(10);
+                pdf.text("Travessa Marçal Aguiar nº 543, Centro – Baturité, Ceará  |  Informações: (85) 9 9198-5507", 105, 285, { align: "center" });
+            }
+
+            desenharFundoInstitucional(doc);
+
+            doc.setTextColor(3, 10, 77); doc.setFont("helvetica", "bold"); doc.setFontSize(16);
+            doc.text(empresa || 'RELATÓRIO', 105, 42, { align: "center" });
+            
+            if (assunto) {
+                doc.setFontSize(11); doc.text(`Assunto: ${assunto}`, 18, 52);
+            }
+            
+            const containerMaster = document.createElement('div');
+            containerMaster.style.width = '174mm';
+            containerMaster.style.fontFamily = 'helvetica';
+            containerMaster.style.fontSize = '10.5pt';
+            containerMaster.style.color = '#1f2937';
+            containerMaster.style.lineHeight = '1.5';
+
+            const divTextoInicial = document.createElement('div');
+            divTextoInicial.innerHTML = mensagemHtml || " ";
+            containerMaster.appendChild(divTextoInicial);
+
+            if (exibirTabela) {
+                const thsHTML = document.querySelectorAll("#tabelaDinamica thead th input");
+                const linhasTrHTML = document.querySelectorAll("#tabelaDinamica tbody tr");
+                
+                const tableMirror = document.createElement('table');
+                tableMirror.style.width = '100%'; tableMirror.style.borderCollapse = 'collapse';
+                tableMirror.style.marginTop = '15px'; tableMirror.style.marginBottom = '15px';
+                tableMirror.style.fontSize = '10pt';
+
+                const thead = document.createElement('thead');
+                const trHead = document.createElement('tr');
+                thsHTML.forEach(input => {
+                    const th = document.createElement('th'); th.innerText = input.value;
+                    th.style.backgroundColor = '#030a4d'; th.style.color = '#ffffff';
+                    th.style.padding = '8px'; th.style.border = '1px solid #cbd5e1';
+                    trHead.appendChild(th);
+                });
+                thead.appendChild(trHead); tableMirror.appendChild(thead);
+
+                const tbody = document.createElement('tbody');
+                linhasTrHTML.forEach(tr => {
+                    const inputs = tr.querySelectorAll("input");
+                    const valores = Array.from(inputs).map(inp => inp.value.trim());
+                    if (valores.some(v => v !== "")) {
+                        const trBody = document.createElement('tr');
+                        const isTotal = valores[0].toUpperCase().includes("TOTAL");
+                        valores.forEach(val => {
+                            const td = document.createElement('td'); td.innerText = val;
+                            td.style.padding = '7px'; td.style.border = '1px solid #cbd5e1';
+                            if (isTotal) {
+                                td.style.fontWeight = 'bold'; td.style.color = '#030a4d'; td.style.backgroundColor = '#f8fafc';
+                            }
+                            trBody.appendChild(td);
+                        });
+                        tbody.appendChild(trBody);
+                    }
+                });
+                tableMirror.appendChild(tbody);
+                containerMaster.appendChild(tableMirror);
+            }
+
+            const divObservacaoFinais = document.createElement('div');
+            divObservacaoFinais.innerHTML = observacaoHtml;
+            containerMaster.appendChild(divObservacaoFinais);
+
+            const divAssinatura = document.createElement('div');
+            divAssinatura.style.marginTop = '25px';
+            divAssinatura.innerHTML = `
+                <div>${dataDoc}</div>
+                <div style="margin-top: 15px;">Atenciosamente,</div>
+                <div style="font-weight: bold; color: #030a4d;">CONTEC – Contabilidade & Assessoria</div>
+            `;
+            containerMaster.appendChild(divAssinatura);
+
+            doc.html(containerMaster, {
+                x: 18,
+                y: assunto ? 56 : 48,
+                width: 174,
+                autoPaging: 'text',
+                windowWidth: 657,
+                callback: function(docFinal) {
+                    const totalPaginas = docFinal.getNumberOfPages();
+                    for(let i = 1; i <= totalPaginas; i++) {
+                        docFinal.setPage(i);
+                        desenharFundoInstitucional(docFinal);
+                    }
+
+                    const sufixoNome = empresa ? empresa.toLowerCase().replace(/\s+/g, '_') : 'contec';
+                    if (modoDownload) { 
+                        docFinal.save(`relatorio_${sufixoNome}.pdf`); 
+                    } else { 
+                        document.getElementById('pdfPreview').src = docFinal.output('bloburl'); 
+                    }
+                }
+            });
+        }
+
         window.onload = () => {
-            // Gera a data de hoje para o campo de data
             const hoje = new Date();
             const dataFormatada = `Baturité-CE, ${hoje.getDate()} de ${new Intl.DateTimeFormat('pt-BR', {month: 'long'}).format(hoje)} de ${hoje.getFullYear()}`;
-            
-            document.getElementById('dataInput').value = dataFormatada;
-            document.getElementById('textoInput').value = "";
-            atualizarPreview();
+            document.getElementById('data').value = dataFormatada;
+            mudarModoOperacao('comunicado'); 
         };
     </script>
 </body>
